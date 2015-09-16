@@ -17,6 +17,6 @@ endif()
 find_package(ITK REQUIRED)
 include(${ITK_USE_FILE})
  
-add_executable(stereopointcounter MACOSX_BUNDLE stereopointcounter.cpp 
-               optionparser.h)
+add_executable(stereopointcounter MACOSX_BUNDLE src/stereopointcounter.cpp 
+               src/optionparser.h)
 target_link_libraries(stereopointcounter ${ITK_LIBRARIES})
