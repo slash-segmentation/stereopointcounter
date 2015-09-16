@@ -66,6 +66,11 @@ bool is_dir(const char *path) {
     return S_ISDIR(st.st_mode);
 }
 
+/**
+ * Checks if path is a file
+ * @param path
+ * @return true if yes, false otherwise
+ */
 bool is_file(const char *path) {
     struct stat st;
     if (stat(path, &st) != 0) {
@@ -102,6 +107,13 @@ std::vector<std::string> getImageFileNamesInDir(const std::string& directory) {
     return fileNames;
 }
 
+/**
+ * Returns a list of images from path specified by <b>arg</b> parameter
+ * @param arg either a directory or a path to a single image
+ * @return If <b>arg</b> is a directory then a list of full path png files in 
+ *         the directory will be returned. Else just the value of <b>arg</b>
+ *         will be returned.
+ */
 std::vector<std::string> getImages(const std::string& arg) {
     if (is_dir(arg.c_str())) {
         return getImageFileNamesInDir(arg);
