@@ -124,8 +124,20 @@ std::vector<std::string> getImages(const std::string& arg) {
 }
 
 std::string usageStr = "usage: stereopointcounter [options]\n\n"
-        "Performs automated Stereology point counting on "
-        " probability images passed in via --images path\n\n";
+        "Performs automated stereology point counting on "
+        "probability map images passed in via --images path. "
+        "\n\nThis tool looks for *.png files and assumes they "
+        "are 8-bit greyscale images all with the same "
+        "size.\n\n"
+        "Output is to standard out and format is comma separated variables "
+        "in the following format:\n\n"
+        "\tImage,GridSize,GridSizePixel,Positive,Total\n"
+        "\t/../foo.png,12x8,120x80,10,,67\n"
+        "\t...\n"
+        "\t...\n"
+        "\tSeconds,GrandTotalPositive,GrandTotal\n"
+        "\t123,29342,234292\n\n";
+        
 
 std::string usageWithOpts = usageStr + "Options:";
 
@@ -145,7 +157,8 @@ const option::Descriptor usage[] = {
     {VERSION, 0, "v", "version", option::Arg::None,
         "  --version, -v  \tPrint version and exit."},
     {IMAGES, 0, "i", "images", Arg::Required,
-        "  --images, -m  \tSingle greyscale image or directory of *.png images"},
+        "  --images, -m  \tCan be set to a single greyscale 8-bit image or directory of "
+        " 8-bit greyscale *.png images"},
     {GRIDX, 0, "", "gridx", Arg::Required,
         "  --gridx,  \tGrid size in X.  A value of say 4 means to generate 4"
         "vertical lines evenly spaced across the image."},
@@ -248,7 +261,7 @@ int main(int argc, char *argv[]) {
     int totalNCount = 0;
     short pixel;
     std::string curImage;
-    std::cout << "Image,GridSize,GridSizePixel,#Points,Positive,Negative" << std::endl;
+    std::cout << "Image,GridSize,GridSizePixel,Positive,Total" << std::endl;
     for (std::vector<std::string>::iterator it = images.begin(); it != images.end(); ++it) {
         curImage = *it;
         reader->SetFileName(curImage.c_str());
@@ -279,17 +292,15 @@ int main(int argc, char *argv[]) {
             }
         }
         std::cout <<*it<<","<<gridX<<"x"<<gridY<<","<<gridWidth<<"x"
-                  <<gridHeight<<","<<(imagePCount + imageNCount)<<","
-                  <<imagePCount<<","<<imageNCount<<std::endl;
+                  <<gridHeight<<","<<imagePCount<<","
+                  <<(imageNCount + imagePCount)<<std::endl;
         totalPCount += imagePCount;
         totalNCount += imageNCount;
     }
     clock.Stop();    
-    
-    std::cout <<std::endl<< clock.GetTotal() << ","<< totalPCount << "/" 
-            << (totalPCount + totalNCount) << " = " 
-            << ((float) totalPCount / (float) (totalPCount + totalNCount)) 
-            << std::endl;
+    std::cout <<std::endl<<"Seconds,GrandTotalPositive,GrandTotal"<<std::endl;
+    std::cout << clock.GetTotal() << ","<< totalPCount << "," 
+            << (totalPCount + totalNCount)<< std::endl;
     /*
     for (int x = gridWidth; x < imageWidth; x+= gridWidth){
         for (int y = 0; y < imageHeight; y++){
