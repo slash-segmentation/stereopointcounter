@@ -9,6 +9,9 @@
 #include "itkTimeProbe.h"
 
 #include "optionparser.h"
+#include "ImageUtils.hpp"
+#include "StereoPointCount.hpp"
+
 
 struct Arg : public option::Arg {
 
@@ -53,76 +56,6 @@ struct Arg : public option::Arg {
 
 };
 
-/**
- * Checks if path is a directory
- * @param path
- * @return true if yes, false otherwise.
- */
-bool is_dir(const char *path) {
-    struct stat st;
-    if (stat(path, &st) != 0) {
-        return false;
-    }
-    return S_ISDIR(st.st_mode);
-}
-
-/**
- * Checks if path is a file
- * @param path
- * @return true if yes, false otherwise
- */
-bool is_file(const char *path) {
-    struct stat st;
-    if (stat(path, &st) != 0) {
-        return false;
-    }
-    return S_ISREG(st.st_mode);
-}
-
-/**
- * Return list of png files in directory passed in
- * @param directory
- * @return 
- */
-std::vector<std::string> getImageFileNamesInDir(const std::string& directory) {
-
-    std::string pngSuffix = ".png";
-    std::size_t suffixLen = pngSuffix.length();
-    std::vector<std::string> fileNames;
-    struct dirent *dirEnt;
-    DIR *dir = opendir(directory.c_str());
-    if (dir == NULL) {
-        return fileNames;
-    }
-    while ((dirEnt = readdir(dir)) != NULL) {
-        std::string entry = dirEnt->d_name;
-        if (entry.length() < suffixLen) {
-            continue;
-        }
-        std::string ending = entry.substr(entry.length() - suffixLen, suffixLen);
-        if (ending.compare(pngSuffix) == 0) {
-            fileNames.push_back(directory + "/" + entry);
-        }
-    }
-    return fileNames;
-}
-
-/**
- * Returns a list of images from path specified by <b>arg</b> parameter
- * @param arg either a directory or a path to a single image
- * @return If <b>arg</b> is a directory then a list of full path png files in 
- *         the directory will be returned. Else just the value of <b>arg</b>
- *         will be returned.
- */
-std::vector<std::string> getImages(const std::string& arg) {
-    if (is_dir(arg.c_str())) {
-        return getImageFileNamesInDir(arg);
-    }
-    std::vector<std::string> imageFile;
-    imageFile.push_back(arg);
-    return imageFile;
-}
-
 std::string usageStr = "usage: stereopointcounter [options]\n\n"
         "Performs automated stereology point counting on "
         "probability map images passed in via --images path. "
@@ -145,7 +78,7 @@ std::string usageWithOpts = usageStr + "Options:";
  * Used by optionparser to keep track of command line arguments
  */
 enum optionIndex {
-    UNKNOWN, HELP, VERSION, IMAGES, GRIDX, GRIDY, THRESHOLD
+    UNKNOWN, HELP, VERSION, IMAGES, GRIDX, GRIDY, THRESHOLD, SAVEIMAGES
 };
 
 /**
@@ -168,6 +101,10 @@ const option::Descriptor usage[] = {
     {THRESHOLD, 0, "t", "threshold", Arg::Required,
         "  --threshold, -t  \tThreshold to for pixel intensity that denotes"
         " a given pixel intersection is a positive hit (0 - 255)"},
+    {SAVEIMAGES, 0, "s", "saveimages", Arg::RequiredDir,
+        "  --save, -s  \tIf set to <dir>, writes out images as RGB with grid "
+        "overlayed in red and marks denoting intersections with matches"
+        " to a file prefixed with gridsize followed by original name"},
     {0, 0, 0, 0, 0, 0}
 };
 
@@ -242,15 +179,13 @@ int main(int argc, char *argv[]) {
     int gridY = std::strtol(options[GRIDY].arg, (char **) NULL, 10);
     int threshold = std::strtol(options[THRESHOLD].arg, (char **) NULL, 10);
 
-    std::vector<std::string> images = getImages(std::string(options[IMAGES].arg));
+    std::vector<std::string> images = spc::getImages(std::string(options[IMAGES].arg));
 
     typedef unsigned char PixelType;
     typedef itk::Image<PixelType, 2> ImageType;
     ImageType::IndexType pixelLoc;
     ImageType::Pointer image;
     ImageType::RegionType region;
-    typedef itk::ImageFileReader<ImageType> ReaderType;
-    ReaderType::Pointer reader = ReaderType::New();
     int gridWidth = -1;
     int gridHeight = -1;
     int imageWidth = -1;
@@ -261,12 +196,11 @@ int main(int argc, char *argv[]) {
     int totalNCount = 0;
     short pixel;
     std::string curImage;
+    spc::StereoPointCount yo;
     std::cout << "Image,GridSize,GridSizePixel,Positive,Total" << std::endl;
     for (std::vector<std::string>::iterator it = images.begin(); it != images.end(); ++it) {
         curImage = *it;
-        reader->SetFileName(curImage.c_str());
-        reader->Update();
-        image = reader->GetOutput();
+        image = spc::readImage<ImageType>(curImage);
         region = image->GetLargestPossibleRegion();
 
         ImageType::SizeType size = region.GetSize();
@@ -301,27 +235,6 @@ int main(int argc, char *argv[]) {
     std::cout <<std::endl<<"Seconds,GrandTotalPositive,GrandTotal"<<std::endl;
     std::cout << clock.GetTotal() << ","<< totalPCount << "," 
             << (totalPCount + totalNCount)<< std::endl;
-    /*
-    for (int x = gridWidth; x < imageWidth; x+= gridWidth){
-        for (int y = 0; y < imageHeight; y++){
-            pixelLoc[0] = x;
-            pixelLoc[1] = y;
-            image->SetPixel(pixelLoc,redPixel);
-        }
-    }
-    for (int y = gridHeight; y < imageHeight; y+= gridHeight){
-        for (int x = 0; x < imageWidth; x++){
-            pixelLoc[0] = x;
-            pixelLoc[1] = y;
-            image->SetPixel(pixelLoc,redPixel);
-        }
-    }
-  
-    typedef  itk::ImageFileWriter< RGBImageType  > WriterType;
-    WriterType::Pointer writer = WriterType::New();
-    writer->SetFileName("ha.png");
-    writer->SetInput(image);
-    writer->Update();
-     */
+    
     return EXIT_SUCCESS;
 }
