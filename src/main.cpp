@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <utility>
 
 #include "itkImage.h"
 #include "itkImageFileReader.h"
@@ -102,7 +103,7 @@ const option::Descriptor usage[] = {
         "  --threshold, -t  \tThreshold to for pixel intensity that denotes"
         " a given pixel intersection is a positive hit (0 - 255)"},
     {SAVEIMAGES, 0, "s", "saveimages", Arg::RequiredDir,
-        "  --save, -s  \tIf set to <dir>, writes out images as RGB with grid "
+        "  --saveimages, -s  \tIf set to <dir>, writes out images as RGB with grid "
         "overlayed in red and marks denoting intersections with matches"
         " to a file prefixed with gridsize followed by original name"},
     {0, 0, 0, 0, 0, 0}
@@ -172,6 +173,10 @@ int main(int argc, char *argv[]) {
                 << std::endl;
         return 7;
     }
+    std::string save_images_dir = "";
+    if (options[SAVEIMAGES].arg != NULL){
+        save_images_dir = std::string(options[SAVEIMAGES].arg);
+    }
     itk::TimeProbe clock;
     clock.Start();
 
@@ -197,6 +202,10 @@ int main(int argc, char *argv[]) {
     short pixel;
     std::string curImage;
     spc::StereoPointCount yo;
+    
+    std::vector< std::pair<int,int> > positivePixels;
+    
+    spc::RGBImageType::IndexType curPixel;
     std::cout << "Image,GridSize,GridSizePixel,Positive,Total" << std::endl;
     for (std::vector<std::string>::iterator it = images.begin(); it != images.end(); ++it) {
         curImage = *it;
@@ -220,6 +229,7 @@ int main(int argc, char *argv[]) {
                 pixel = image->GetPixel(pixelLoc);
                 if (pixel >= threshold) {
                     imagePCount++;
+                    positivePixels.push_back(std::make_pair(x,y));
                 } else {
                     imageNCount++;
                 }
@@ -230,6 +240,16 @@ int main(int argc, char *argv[]) {
                   <<(imageNCount + imagePCount)<<std::endl;
         totalPCount += imagePCount;
         totalNCount += imageNCount;
+        if (save_images_dir.length() > 0){
+            std::string save_image = save_images_dir + "/ha.png";
+            ImageType::Pointer imageCopy = spc::duplicateImage<ImageType>(image);
+            spc::RGBImageType::Pointer rgbimage = spc::castImageToRGBImage<ImageType>(imageCopy);
+            rgbimage = spc::drawRedGridOnImage(rgbimage,gridWidth,gridHeight);
+            rgbimage = spc::drawGreenCirclesAroundPointsOnImage(rgbimage,
+                    positivePixels);
+            spc::writeImage<spc::RGBImageType>(rgbimage,save_image);
+        }
+        positivePixels.clear();
     }
     clock.Stop();    
     std::cout <<std::endl<<"Seconds,GrandTotalPositive,GrandTotal"<<std::endl;
