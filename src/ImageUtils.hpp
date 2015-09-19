@@ -12,11 +12,18 @@
 #include <dirent.h>
 
 #include "itkImage.h"
+#include "itkIndex.h"
+#include "itkCastImageFilter.h"
 #include "itkImageDuplicator.h"
 
 
 namespace spc {
 
+    const int Dimension = 2;
+    typedef itk::RGBPixel< unsigned char > RGBPixelType;
+    typedef itk::Image< RGBPixelType, Dimension > RGBImageType;
+    
+    
         /**
      * Checks if path is a directory
      * @param path
@@ -120,52 +127,86 @@ namespace spc {
 
     }
 
-    template < typename TPixelType >
-    void
-    drawGridOnImage(typename itk::Image< TPixelType, 2 >::Pointer &image, 
-            std::string const& destImageFile,
-            int gridWidth,
-            int gridHeight) {
-        const int Dimension = 2;
-        typedef itk::RGBPixel< unsigned char > RGBPixelType;
-        typedef itk::Image< RGBPixelType, Dimension > RGBImageType;
-        RGBImageType::IndexType pixelLoc;
-        
-        typedef itk::ImageDuplicator< RGBImageType > DuplicatorType;
-        DuplicatorType::Pointer duplicator = DuplicatorType::New();
+    template < typename TImageType> 
+    typename TImageType::Pointer 
+    duplicateImage(typename TImageType::Pointer const &image){
+        typedef itk::ImageDuplicator< TImageType > DuplicatorType;
+        typename DuplicatorType::Pointer duplicator = DuplicatorType::New();
         duplicator->SetInputImage(image);
         duplicator->Update();
-        RGBImageType::Pointer rgbImage = duplicator->GetOutput();
+        return duplicator->GetOutput();
+    }
+    
+    template < typename TImageType>
+    RGBImageType::Pointer
+    castImageToRGBImage(typename TImageType::Pointer &image){
+        typedef itk::CastImageFilter< TImageType, RGBImageType > CastFilterType;
+        typename CastFilterType::Pointer castFilter = CastFilterType::New();
+        castFilter->SetInput(image);
+        castFilter->Update();
+        return castFilter->GetOutput();
+    }
+    
+    RGBImageType::Pointer
+    drawRedGridOnImage(RGBImageType::Pointer &image, 
+            int gridWidth,
+            int gridHeight) {
+        
+        RGBImageType::RegionType region;
+        RGBImageType::IndexType pixelLoc;
 
         RGBPixelType redPixel;
         redPixel.SetRed(255);
         redPixel.SetBlue(0);
         redPixel.SetGreen(0);
-
-        typedef itk::Image< TPixelType, Dimension > ImageType;
-	typename ImageType::RegionType region;
         
         region = image->GetLargestPossibleRegion();
         
-        typename ImageType::SizeType size = region.GetSize();
+        RGBImageType::SizeType size = region.GetSize();
         int imageWidth = size[0];
         int imageHeight =size[1];
 
         for (int x = gridWidth; x < imageWidth; x += gridWidth) {
             for (int y = 0; y < imageHeight; y++) {
-                pixelLoc[0] = x;
-                pixelLoc[1] = y;
-                rgbImage->SetPixel(pixelLoc, redPixel);
+                if (y % gridHeight != 0 &&
+                    (y-1) % gridHeight != 0 &&
+                    (y+1) % gridHeight != 0){
+                    pixelLoc[0] = x;
+                    pixelLoc[1] = y;
+                    image->SetPixel(pixelLoc, redPixel);
+                }
             }
         }
         for (int y = gridHeight; y < imageHeight; y += gridHeight) {
             for (int x = 0; x < imageWidth; x++) {
-                pixelLoc[0] = x;
-                pixelLoc[1] = y;
-                rgbImage->SetPixel(pixelLoc, redPixel);
+                if (x % gridWidth != 0 &&
+                    (x-1) % gridWidth != 0 &&
+                    (x+1) % gridWidth != 0){
+                    pixelLoc[0] = x;
+                    pixelLoc[1] = y;
+                    image->SetPixel(pixelLoc, redPixel);
+                }
             }
         }
-        spc::writeImage<RGBImageType>(rgbImage,destImageFile);
+        return image;
+    }
+    
+    RGBImageType::Pointer
+    drawGreenCirclesAroundPointsOnImage(RGBImageType::Pointer &image,
+            std::vector< std::pair<int,int> > locations){
+        std::vector< std::pair<int,int> >::iterator itr;
+        RGBImageType::IndexType pixelLoc;
+        RGBPixelType greenPixel;
+        greenPixel.SetRed(0);
+        greenPixel.SetBlue(0);
+        greenPixel.SetGreen(255);
+        
+        for (itr = locations.begin(); itr != locations.end();itr++){
+            pixelLoc[0] = itr->first;
+            pixelLoc[1] = itr->second;
+            image->SetPixel(pixelLoc,greenPixel);
+        }
+        return image;
     }
 
 }
