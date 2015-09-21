@@ -24,7 +24,7 @@ Usage
     usage: stereopointcounter [options]
 
     Performs automated stereology point counting on probability map images passed in
-via --images path. 
+    via --images path. 
 
     This tool looks for *.png files and assumes they are 8-bit greyscale images all
     with the same size.
