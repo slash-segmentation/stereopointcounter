@@ -8,6 +8,7 @@
 #ifndef IMAGEUTILS_HPP
 #define	IMAGEUTILS_HPP
 
+#include <math.h>
 #include <sys/types.h>
 #include <dirent.h>
 
@@ -19,9 +20,13 @@
 
 namespace spc {
 
-    const int Dimension = 2;
+    const double PI = 3.14159;
+    const int DIMENSION = 2;
     typedef itk::RGBPixel< unsigned char > RGBPixelType;
-    typedef itk::Image< RGBPixelType, Dimension > RGBImageType;
+    typedef itk::Image< RGBPixelType, DIMENSION > RGBImageType;
+    
+    typedef itk::RGBAPixel< unsigned char > RGBAPixelType;
+    typedef itk::Image< RGBAPixelType, DIMENSION > RGBAImageType;
     
     
         /**
@@ -94,39 +99,62 @@ namespace spc {
         return imageFile;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Read an image via its address
-    ///////////////////////////////////////////////////////////////////////////
-
+    /**
+     * Given full path to a file strip path to left of last forward slash
+     * @param path
+     * @return path to file
+     */
+    std::string getFileNameFromPath(const std::string& path){
+        std::size_t last_slash = path.find_last_of("/");
+        if (last_slash == std::string::npos){
+            return path;
+        }
+        if (last_slash == path.npos){
+            return "";
+        }
+        return path.substr(last_slash+1);
+    }
+    /**
+     * Reads image from file path
+     * @param path full path to image file to read
+     * @return TImageType::Pointer pointing to image
+     */
     template < typename TImageType >
-    typename TImageType::Pointer readImage(const std::string& address) {
+    typename TImageType::Pointer readImage(const std::string& path) {
 
         typedef itk::ImageFileReader< TImageType > ReaderType;
         typename ReaderType::Pointer reader = ReaderType::New();
 
-        reader->SetFileName(address);
+        reader->SetFileName(path);
         reader->Update();
 
         return reader->GetOutput();
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Write an image to the given address
-    ///////////////////////////////////////////////////////////////////////////
-
+    /**
+     * write image to file
+     * @param image the image to write to a file
+     * @param path output file, should be full path and extension denotes
+     *             image format type.  
+     */
     template < typename TImageType >
     void writeImage(typename TImageType::Pointer const& image,
-            std::string const& address) {
+            std::string const& path) {
 
         typedef itk::ImageFileWriter< TImageType > WriterType;
         typename WriterType::Pointer writer = WriterType::New();
 
-        writer->SetFileName(address);
+        writer->SetFileName(path);
         writer->SetInput(image);
         writer->Update();
 
     }
 
+    /**
+     * Duplicates image
+     * @param image
+     * @return makes a copy of image
+     */
     template < typename TImageType> 
     typename TImageType::Pointer 
     duplicateImage(typename TImageType::Pointer const &image){
@@ -137,6 +165,11 @@ namespace spc {
         return duplicator->GetOutput();
     }
     
+    /**
+     * Convert image to RGBImageType
+     * @param image
+     * @return converted image
+     */
     template < typename TImageType>
     RGBImageType::Pointer
     castImageToRGBImage(typename TImageType::Pointer &image){
@@ -147,24 +180,48 @@ namespace spc {
         return castFilter->GetOutput();
     }
     
-    RGBImageType::Pointer
-    drawRedGridOnImage(RGBImageType::Pointer &image, 
+    /**
+     * Convert image to RGBAImageType
+     * @param image
+     * @return converted image
+     */
+    template < typename TImageType>
+    RGBAImageType::Pointer
+    castImageToRGBAImage(typename TImageType::Pointer &image){
+        typedef itk::CastImageFilter< TImageType, RGBAImageType > CastFilterType;
+        typename CastFilterType::Pointer castFilter = CastFilterType::New();
+        castFilter->SetInput(image);
+        castFilter->Update();
+        return castFilter->GetOutput();
+    }
+    
+    /**
+     * Draws a grid on image using pixel passed in.  Note this implementation
+     * omits the pixels at the intersections and +-1 pixel around those
+     * intersections
+     * @param image image to draw on
+     * @param pixel pixel to do drawing with
+     * @param gridWidth desired spacing in pixels between vertical gridlines
+     * @param gridHeight desired spacing in pixels between horizontal gridlines
+     * @return 
+     */
+    template<typename TPixelType>
+    typename itk::Image<TPixelType,spc::DIMENSION>::Pointer 
+    drawGridOnImage(
+    typename itk::Image<TPixelType,spc::DIMENSION>::Pointer &image, 
+            TPixelType pixel,
             int gridWidth,
             int gridHeight) {
         
-        RGBImageType::RegionType region;
-        RGBImageType::IndexType pixelLoc;
-
-        RGBPixelType redPixel;
-        redPixel.SetRed(255);
-        redPixel.SetBlue(0);
-        redPixel.SetGreen(0);
+        typedef itk::Image<TPixelType,spc::DIMENSION> ImageType;
+        typename ImageType::IndexType pixelLoc;
+        typename ImageType::RegionType region;
         
         region = image->GetLargestPossibleRegion();
         
-        RGBImageType::SizeType size = region.GetSize();
+        typename ImageType::SizeType size = region.GetSize();
         int imageWidth = size[0];
-        int imageHeight =size[1];
+        int imageHeight = size[1];
 
         for (int x = gridWidth; x < imageWidth; x += gridWidth) {
             for (int y = 0; y < imageHeight; y++) {
@@ -173,7 +230,7 @@ namespace spc {
                     (y+1) % gridHeight != 0){
                     pixelLoc[0] = x;
                     pixelLoc[1] = y;
-                    image->SetPixel(pixelLoc, redPixel);
+                    image->SetPixel(pixelLoc, pixel);
                 }
             }
         }
@@ -184,34 +241,128 @@ namespace spc {
                     (x+1) % gridWidth != 0){
                     pixelLoc[0] = x;
                     pixelLoc[1] = y;
-                    image->SetPixel(pixelLoc, redPixel);
+                    image->SetPixel(pixelLoc, pixel);
                 }
             }
         }
         return image;
     }
+
+    /**
+     * Draws a single circle on image passed in
+     * @param image image to draw on
+     * @param pixel pixel to draw with
+     * @param x center of circle x coordinate
+     * @param y center of circle y coordinate
+     * @param radius desired radius in pixels of circle
+     * @return image with circle drawn.
+     */
+    template<typename TPixelType>
+    typename itk::Image<TPixelType,spc::DIMENSION>::Pointer 
+    drawCircle(typename itk::Image<TPixelType,spc::DIMENSION>::Pointer &image,
+            TPixelType pixel,
+            int x,int y, double radius){
+        
+        double pi_double = 2*spc::PI;
+        typedef itk::Image<TPixelType,spc::DIMENSION> ImageType;
+        typename ImageType::IndexType pixelLoc;
+        for (double angle = 0; angle < pi_double; angle+=0.1 ){
+            pixelLoc[0] = x + floor(radius * cos(angle));
+            pixelLoc[1] = y + floor(radius * sin(angle));
+            image->SetPixel(pixelLoc,pixel);
+        }
+        return image;
+    }
     
-    RGBImageType::Pointer
-    drawGreenCirclesAroundPointsOnImage(RGBImageType::Pointer &image,
-            std::vector< std::pair<int,int> > locations){
+    /**
+     * Draws a cirle around every location specified in the locations parameter
+     * using the pixel passed in
+     * @param image image to draw circles on 
+     * @param pixel pixel to draw with
+     * @param locations  std::vector of std::pair<int,int> denoting each location
+     *                   to draw the circle.  The first value in pair is X and
+     *                   second is Y coordinate.
+     * @param circle_radius Radius of circle, 5 means 5 pixels.
+     * @return input image with circles draw on it.
+     */
+    template<typename TPixelType>
+    typename itk::Image<TPixelType,spc::DIMENSION>::Pointer 
+    drawCirclesAroundPointsOnImage(
+            typename itk::Image<TPixelType,spc::DIMENSION>::Pointer &image,
+            TPixelType pixel,
+            std::vector< std::pair<int,int> > locations,double circle_radius){
+        
         std::vector< std::pair<int,int> >::iterator itr;
-        RGBImageType::IndexType pixelLoc;
-        RGBPixelType greenPixel;
-        greenPixel.SetRed(0);
-        greenPixel.SetBlue(0);
-        greenPixel.SetGreen(255);
+        typedef itk::Image<TPixelType,spc::DIMENSION> ImageType;
+        typename ImageType::IndexType pixelLoc;
         
         for (itr = locations.begin(); itr != locations.end();itr++){
             pixelLoc[0] = itr->first;
             pixelLoc[1] = itr->second;
-            image->SetPixel(pixelLoc,greenPixel);
+            image->SetPixel(pixelLoc,pixel);
+            spc::drawCircle<TPixelType>(image,pixel,pixelLoc[0],
+                    pixelLoc[1],circle_radius);
         }
         return image;
     }
 
+    /**
+     * First generates a grid across image with gridx vertical grid lines and
+     * gridy horizontal grid lines.  Function then examines intersections
+     * and every intersection whose pixel value is above threshold is added
+     * to std::vector<std::pair<int,int>> returned by this method.  In addition,
+     * total_pixels, grid_width,grid_height are set by this method.
+     * 
+     * @param image the image being examined.  Should be a 8-bit greyscale image
+     * @param gridx number of vertical grid lines to break image into
+     * @param gridy number of horizontal grid lines to break image into
+     * @param threshold 
+     * @param total_pixels set by function to # pixels examined
+     * @param grid_width set by function to vertical grid spacing in pixels
+     * @param grid_height set by function to horizontal grid spacing in pixels
+     * @return vector if pairs denoting locations where intersections >= threshold
+     */
+    template<typename TPixelType>
+    std::vector< std::pair<int,int> >
+    getIntersectionPixelsAboveThreshold
+    (typename itk::Image<TPixelType,spc::DIMENSION>::Pointer const &image,
+            int gridx,int gridy,int threshold,int &total_pixels,int &grid_width,
+    int &grid_height){
+        
+        std::vector< std::pair<int,int> > positivePixels;
+        
+        typedef itk::Image<TPixelType,spc::DIMENSION> ImageType;
+        typename ImageType::IndexType pixelLoc;
+        typename ImageType::RegionType region;
+        
+        typename ImageType::PixelType pixel;
+        
+        region = image->GetLargestPossibleRegion();
+        
+        typename ImageType::SizeType size = region.GetSize();
+        
+        int image_width = size[0];
+        int image_height = size[1];
+        
+        grid_width = floor((float) image_width / (float) gridx);
+        grid_height = floor((float) image_height / (float) gridy);
+        total_pixels = 0;
+        for (int x = grid_width; x < image_width; x += grid_width) {
+            for (int y = grid_height; y < image_height; y += grid_height) {
+                pixelLoc[0] = x;
+                pixelLoc[1] = y;
+                
+                pixel = image->GetPixel(pixelLoc);
+                if (pixel >= threshold) {
+                    positivePixels.push_back(std::make_pair(x,y));
+                }
+                total_pixels++;
+            }
+        }
+        return positivePixels;
+    }
+    
 }
-
-
 
 #endif	/* IMAGEUTILS_HPP */
 
