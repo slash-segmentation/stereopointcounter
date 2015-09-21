@@ -1,5 +1,5 @@
-cmake: http://www.cmake.org/
-itk: http://www.itk.org/
+[cmake]: http://www.cmake.org/
+[itk]: http://www.itk.org/
 
 # stereopointcounter
 Performs automated point counting stereology on greyscale probability maps
