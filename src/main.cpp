@@ -4,6 +4,10 @@
 #include <dirent.h>
 #include <utility>
 
+#include <iostream>
+#include <string>
+#include <sstream>
+
 #include "itkImage.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
@@ -11,7 +15,6 @@
 
 #include "optionparser.h"
 #include "ImageUtils.hpp"
-#include "StereoPointCount.hpp"
 
 
 struct Arg : public option::Arg {
@@ -104,8 +107,9 @@ const option::Descriptor usage[] = {
         " a given pixel intersection is a positive hit (0 - 255)"},
     {SAVEIMAGES, 0, "s", "saveimages", Arg::RequiredDir,
         "  --saveimages, -s  \tIf set to <dir>, writes out images as RGB with grid "
-        "overlayed in red and marks denoting intersections with matches"
-        " to a file prefixed with gridsize followed by original name"},
+        "overlayed in red and green circles denoting intersections with matches"
+        " to a file with format of "
+        "grid(--gridx)x(--gridy)_pixel(pixelw)x(pixelh)_thresh(-t).(origname)"},
     {0, 0, 0, 0, 0, 0}
 };
 
@@ -185,69 +189,62 @@ int main(int argc, char *argv[]) {
     int threshold = std::strtol(options[THRESHOLD].arg, (char **) NULL, 10);
 
     std::vector<std::string> images = spc::getImages(std::string(options[IMAGES].arg));
-
-    typedef unsigned char PixelType;
-    typedef itk::Image<PixelType, 2> ImageType;
-    ImageType::IndexType pixelLoc;
-    ImageType::Pointer image;
-    ImageType::RegionType region;
-    int gridWidth = -1;
-    int gridHeight = -1;
-    int imageWidth = -1;
-    int imageHeight = -1;
-    int imagePCount = 0;
-    int imageNCount = 0;
+    
     int totalPCount = 0;
     int totalNCount = 0;
-    short pixel;
     std::string curImage;
-    spc::StereoPointCount yo;
+    typedef unsigned char PixelType;
+    typedef itk::Image<PixelType, 2> ImageType;
+    ImageType::Pointer image;
+    spc::RGBPixelType greenPixel;
+    greenPixel.SetRed(0);
+    greenPixel.SetBlue(0);
+    greenPixel.SetGreen(255);
+    spc::RGBPixelType redPixel;
+    redPixel.SetRed(255);
+    redPixel.SetBlue(0);
+    redPixel.SetGreen(0);
+    int image_total = 0;
+    int imagePCount = 0;
+    int imageNCount = 0;
+    int grid_width = 0;
+    int grid_height = 0;
     
     std::vector< std::pair<int,int> > positivePixels;
-    
-    spc::RGBImageType::IndexType curPixel;
     std::cout << "Image,GridSize,GridSizePixel,Positive,Total" << std::endl;
     for (std::vector<std::string>::iterator it = images.begin(); it != images.end(); ++it) {
+        
         curImage = *it;
         image = spc::readImage<ImageType>(curImage);
-        region = image->GetLargestPossibleRegion();
-
-        ImageType::SizeType size = region.GetSize();
-        imageWidth = size[0];
-        imageHeight = size[1];
-        gridWidth = floor((float) imageWidth / (float) gridX);
-        gridHeight = floor((float) imageHeight / (float) gridY);
-
-        imagePCount = 0;
-        imageNCount = 0;
-        gridWidth = floor((float) imageWidth / (float) gridX);
-        gridHeight = floor((float) imageHeight / (float) gridY);
-        for (int x = gridWidth; x < imageWidth; x += gridWidth) {
-            for (int y = gridHeight; y < imageHeight; y += gridHeight) {
-                pixelLoc[0] = x;
-                pixelLoc[1] = y;
-                pixel = image->GetPixel(pixelLoc);
-                if (pixel >= threshold) {
-                    imagePCount++;
-                    positivePixels.push_back(std::make_pair(x,y));
-                } else {
-                    imageNCount++;
-                }
-            }
-        }
-        std::cout <<*it<<","<<gridX<<"x"<<gridY<<","<<gridWidth<<"x"
-                  <<gridHeight<<","<<imagePCount<<","
-                  <<(imageNCount + imagePCount)<<std::endl;
+        
+        positivePixels = spc::getIntersectionPixelsAboveThreshold<PixelType>(image,gridX,
+                gridY,threshold,image_total,grid_width,grid_height);
+    
+        imagePCount = positivePixels.size();
+        imageNCount = image_total - imagePCount;
+        
+        std::cout <<*it<<","<<gridX<<"x"<<gridY<<","<<grid_width<<"x"
+                <<grid_height<<","<<imagePCount<<","
+                  <<image_total<<std::endl;
         totalPCount += imagePCount;
         totalNCount += imageNCount;
         if (save_images_dir.length() > 0){
-            std::string save_image = save_images_dir + "/ha.png";
+            std::ostringstream os;
+            
             ImageType::Pointer imageCopy = spc::duplicateImage<ImageType>(image);
-            spc::RGBImageType::Pointer rgbimage = spc::castImageToRGBImage<ImageType>(imageCopy);
-            rgbimage = spc::drawRedGridOnImage(rgbimage,gridWidth,gridHeight);
-            rgbimage = spc::drawGreenCirclesAroundPointsOnImage(rgbimage,
-                    positivePixels);
-            spc::writeImage<spc::RGBImageType>(rgbimage,save_image);
+            spc::RGBImageType::Pointer rgbimage = spc::castImageToRGBImage
+                    <ImageType>(imageCopy);
+            rgbimage = spc::drawGridOnImage<spc::RGBPixelType>(rgbimage,
+                    redPixel,grid_width,grid_height);
+            rgbimage = spc::drawCirclesAroundPointsOnImage
+                    <spc::RGBPixelType>(rgbimage,greenPixel,positivePixels,5);
+            
+            os << save_images_dir << "/grid" << gridX << "x" << gridY << "_pixel"
+                    << grid_width <<"x"<< grid_height
+                    << "_thresh" << threshold << "." 
+                    << spc::getFileNameFromPath(curImage);
+            
+            spc::writeImage<spc::RGBImageType>(rgbimage,os.str());
         }
         positivePixels.clear();
     }
