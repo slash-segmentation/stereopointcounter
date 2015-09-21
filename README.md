@@ -1,21 +1,25 @@
+cmake: http://www.cmake.org/
+itk: http://www.itk.org/
+
 # stereopointcounter
 Performs automated point counting stereology on greyscale probability maps
 
 Requirements
 ============
 
-* Cmake >=2.8 
-* C++ (>= g++ 4.4.7)
-* ITK >= 4.8 (http://www.itk.org/)
+* [Cmake][cmake] >=2.8
+* C++ >= g++ 4.4.7
+* [ITK][itk] >= 4.8 
 
 To Build
 ========
 
     # download stereopointcounter
-    # git clone ...
+    wget https://github.com/slash-segmentation/stereopointcounter/archive/master.zip
+    unzip master.zip
     mkdir stereo_build
     cd stereo_build
-    cmake ../stereopointcounter
+    cmake ../stereopointcounter-master
     make
 
 Usage
