@@ -1,6 +1,63 @@
 # stereopointcounter
-Performs automated point counting stereology on grayscale probability maps
+Performs automated point counting stereology on greyscale probability maps
 
+Requirements
+============
+
+* Cmake >=2.8 
+* C++ (>= g++ 4.4.7)
+* ITK >= 4.8 (http://www.itk.org/)
+
+To Build
+========
+
+    # download stereopointcounter
+    # git clone ...
+    mkdir stereo_build
+    cd stereo_build
+    cmake ../stereopointcounter
+    make
+
+Usage
+=====
+    stereopointcounter
+    usage: stereopointcounter [options]
+
+    Performs automated stereology point counting on probability map images passed in
+via --images path. 
+
+    This tool looks for *.png files and assumes they are 8-bit greyscale images all
+    with the same size.
+
+    Output is to standard out and format is comma separated variables in the
+    following format:
+
+                    Image,GridSize,GridSizePixel,Positive,Total
+                    /../foo.png,12x8,120x80,10,,67
+                    ...
+                    ...
+                    Seconds,GrandTotalPositive,GrandTotal
+                    123,29342,234292
+
+    Options:
+     --help, -h        Print usage and exit.
+     --version, -v     Print version and exit.
+     --images, -m      Can be set to a single greyscale 8-bit image or directory of
+                       8-bit greyscale *.png images
+     --gridx,          Grid size in X.  A value of say 4 means to generate
+                       4vertical lines evenly spaced across the image.
+     --gridy,          Grid size in Y.  A value of say 8 means to generate
+                       8horizontal lines evenly spaced across the image.
+     --threshold, -t   Threshold to for pixel intensity that denotes a given pixel
+                       intersection is a positive hit (0 - 255)
+     --saveimages, -s  If set to <dir>, writes out images as RGB with grid
+                       overlayed in red and green circles denoting intersections
+                       with matches to a file with format of
+                       grid(--gridx)x(--gridy)_pixel(pixelw)x(pixelh)_thresh(-t).(o
+                       rigname)
+
+
+    
 Copyright
 =========
 
