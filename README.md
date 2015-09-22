@@ -3,45 +3,14 @@
 [segmentation]: https://en.wikipedia.org/wiki/Image_segmentation
 [csv]: https://en.wikipedia.org/wiki/Comma-separated_values
 [png]: https://en.wikipedia.org/wiki/Portable_Network_Graphics
+[stereology]: https://en.wikipedia.org/wiki/Stereology
 # stereopointcounter
-Performs automated point counting stereology on greyscale probability maps.  A probability map
-is simply an image with pixel values of 0-255 where the higher the value the more likely a given
-pixel belongs to whatever feature being [segmented][segmentation].
+
+Performs automated point counting [stereology] on greyscale probability maps.
 
 ![example](images/cartoon.png)
 
-Below is an example input probability map:
-
-![ProbabilityMap](images/probmap.png)
-
-Here is the output image from **stereopointcounter** with **--saveimages** flag turned
-on:
-
-    stereopointcounter --images probmap.png --gridx 52 --gridy 50 --threshold 200 --saveimages .
-    
-**Output to standard out**
-
-This is the output from running the above command.  **--images** can be given a single
-**[png][png]** file or a directory containing a set of **[png]** files.
- 
-    Image,GridSize,GridSizePixel,Positive,Total
-    probmap.png,52x50,23x16,111,2548
-
-    Seconds,GrandTotalPositive,GrandTotal
-    0.22234,111,2548
-
-The above output is in [csv] format and breaks down number of intersections where
-the pixel value at the intersection meets or exceeds the threshold set by **--threshold**
-flag.  At the very end of the output is a summary denoting totals for all **[png]** images
-analyzed.
-
-**Image written to directory specified by --saveimages**
-
-Each intersection is examined and those intersections above the **threshold** which
-in the example case is **200** is circled in green and counted in the stats
-displayed above. 
-
-![ProbabilityMapResult](images/grid52x50_pixel23x16_thresh200.probmap.png) 
+A probability map is simply an image with pixel values of 0-255 where the higher the value the more likely a given pixel belongs to whatever feature being [segmented][segmentation].
 
 
 Requirements
@@ -100,6 +69,39 @@ Usage
                        grid(--gridx)x(--gridy)_pixel(pixelw)x(pixelh)_thresh(-t).(o
                        rigname)
 
+Example usage
+=============
+
+![ProbabilityMap](images/probmap.png)
+
+Here is the output image from **stereopointcounter** with **--saveimages** flag turned
+on:
+
+    stereopointcounter --images probmap.png --gridx 52 --gridy 50 --threshold 200 --saveimages .
+
+**Output to standard out**
+
+This is the output from running the above command.  **--images** can be given a single
+**[png][png]** file or a directory containing a set of **[png]** files.
+
+    Image,GridSize,GridSizePixel,Positive,Total
+    probmap.png,52x50,23x16,111,2548
+
+    Seconds,GrandTotalPositive,GrandTotal
+    0.22234,111,2548
+
+The above output is in [csv] format and breaks down number of intersections where
+the pixel value at the intersection meets or exceeds the threshold set by **--threshold**
+flag.  At the very end of the output is a summary denoting totals for all **[png]** images
+analyzed.
+
+**Image written to directory specified by --saveimages**
+
+Each intersection is examined and those intersections above the **threshold** which
+in the example case is **200** is circled in green and counted in the stats
+displayed above.
+
+![ProbabilityMapResult](images/grid52x50_pixel23x16_thresh200.probmap.png)
 
     
 Copyright
