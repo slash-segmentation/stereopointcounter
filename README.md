@@ -1,13 +1,14 @@
 [cmake]: http://www.cmake.org/
 [itk]: http://www.itk.org/
 [segmentation]: https://en.wikipedia.org/wiki/Image_segmentation
-
+[csv]: https://en.wikipedia.org/wiki/Comma-separated_values
+[png]: https://en.wikipedia.org/wiki/Portable_Network_Graphics
 # stereopointcounter
 Performs automated point counting stereology on greyscale probability maps.  A probability map
 is simply an image with pixel values of 0-255 where the higher the value the more likely a given
 pixel belongs to whatever feature being [segmented][segmentation].
 
-Below is an example probability map:
+Below is an example input probability map:
 
 ![ProbabilityMap](images/probmap.png)
 
@@ -18,6 +19,10 @@ on:
     
 **Output to standard out**
 
+This is the output from running the above command.  **--images** can be given a single
+**[png][png]** file or a directory containing a set of **[png]** files.  For each **[png]** file
+a 
+
     Image,GridSize,GridSizePixel,Positive,Total
     probmap.png,52x50,23x16,111,2548
 
@@ -25,6 +30,10 @@ on:
     0.22234,111,2548
 
 **Image written to directory specified by --saveimages**
+
+Each intersection is examined and those intersections above the **threshold** which
+in the example case is **200** is circled in green and counted in the stats
+displayed above. 
 
 ![ProbabilityMapResult](images/grid52x50_pixel23x16_thresh200.probmap.png) 
 
