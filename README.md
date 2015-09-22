@@ -26,7 +26,7 @@ on:
 
 **Image written to directory specified by --saveimages**
 
-![ProbabilityMapResult](grid52x50_pixel23x16_thresh200.probmap.png) 
+![ProbabilityMapResult](images/grid52x50_pixel23x16_thresh200.probmap.png) 
 
 
 Requirements
