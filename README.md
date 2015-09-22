@@ -8,6 +8,8 @@ Performs automated point counting stereology on greyscale probability maps.  A p
 is simply an image with pixel values of 0-255 where the higher the value the more likely a given
 pixel belongs to whatever feature being [segmented][segmentation].
 
+![example](images/cartoon.png)
+
 Below is an example input probability map:
 
 ![ProbabilityMap](images/probmap.png)
@@ -20,14 +22,18 @@ on:
 **Output to standard out**
 
 This is the output from running the above command.  **--images** can be given a single
-**[png][png]** file or a directory containing a set of **[png]** files.  For each **[png]** file
-a 
-
+**[png][png]** file or a directory containing a set of **[png]** files.
+ 
     Image,GridSize,GridSizePixel,Positive,Total
     probmap.png,52x50,23x16,111,2548
 
     Seconds,GrandTotalPositive,GrandTotal
     0.22234,111,2548
+
+The above output is in [csv] format and breaks down number of intersections where
+the pixel value at the intersection meets or exceeds the threshold set by **--threshold**
+flag.  At the very end of the output is a summary denoting totals for all **[png]** images
+analyzed.
 
 **Image written to directory specified by --saveimages**
 
