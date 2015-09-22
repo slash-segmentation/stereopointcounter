@@ -24,6 +24,7 @@ on:
     Seconds,GrandTotalPositive,GrandTotal
     0.22234,111,2548
 
+**Image written to directory specified by --saveimages**
 
 ![ProbabilityMapResult](grid52x50_pixel23x16_thresh200.probmap.png) 
 
