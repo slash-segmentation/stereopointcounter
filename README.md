@@ -15,6 +15,15 @@ Here is the output image from **stereopointcounter** with **--saveimages** flag 
 on:
 
     stereopointcounter --images probmap.png --gridx 52 --gridy 50 --threshold 200 --saveimages .
+    
+**Output to standard out**
+
+    Image,GridSize,GridSizePixel,Positive,Total
+    probmap.png,52x50,23x16,111,2548
+
+    Seconds,GrandTotalPositive,GrandTotal
+    0.22234,111,2548
+
 
 ![ProbabilityMapResult](grid52x50_pixel23x16_thresh200.probmap.png) 
 
