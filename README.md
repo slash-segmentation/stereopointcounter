@@ -1,14 +1,28 @@
 [cmake]: http://www.cmake.org/
 [itk]: http://www.itk.org/
+[segmentation]: https://en.wikipedia.org/wiki/Image_segmentation
 
 # stereopointcounter
-Performs automated point counting stereology on greyscale probability maps
+Performs automated point counting stereology on greyscale probability maps.  A probability map
+is simply an image with pixel values of 0-255 where the higher the value the more likely a given
+pixel belongs to whatever feature being [segmented][segmentation].
+
+Below is an example probability map:
+
+!(images/probmap.png)
+
+Here is the output image from **stereopointcounter** with **--saveimages** flag turned
+on:
+
+    stereopointcounter --images probmap.png --gridx 52 --gridy 50 --threshold 200 --saveimages .
+ 
+
 
 Requirements
 ============
 
 * [Cmake][cmake] >=2.8
-* C++ >= g++ 4.4.7
+* C++ >= (On linux g++ 4.4.7)
 * [ITK][itk] >= 4.8 
 
 To Build
