@@ -9,7 +9,7 @@ pixel belongs to whatever feature being [segmented][segmentation].
 
 Below is an example probability map:
 
-!(images/probmap.png)
+![ProbabilityMap](images/probmap.png)
 
 Here is the output image from **stereopointcounter** with **--saveimages** flag turned
 on:
